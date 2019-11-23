@@ -33,6 +33,10 @@ class Events {
     }
 
     static $on(event, handler, once = false) {
+        if (typeof event != 'string')
+            throw new Error(`Expected a string for event name!`)
+        if (typeof handler != 'function')
+            throw new Error(`Expected a function for event handler!`)
         var id = Events._id()
         Events._map.set(id, { event, handler, once })
         return id
