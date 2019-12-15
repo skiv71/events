@@ -27,9 +27,7 @@ class Events {
     }
 
     static $off(id) {
-        var { handler } = Events._map.get(id) || {}
-        if (typeof handler != 'function')
-            throw new Error(`Invalid event watcher id, ${id}!`)
+        return Events._map.delete(id)
     }
 
     static $on(event, handler, once = false) {
