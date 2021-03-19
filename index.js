@@ -1,3 +1,5 @@
+//@ts-check
+
 var random = require('randomstring')
 
 var _state = {
@@ -6,55 +8,59 @@ var _state = {
 
 class Events {
 
-    static _id() {
+    static _uid() {
         return random
-            .generate(64)
+            .generate(128)
     }
 
-    static get _map() {
+    static get list() {
         return _state.map
     }
 
     static $emit(event, data) {
-        var map = Events._map
-        for (var [id, item] of map) {
-            if (item.event != event)
+        for (var [uid, e] of Events.list) {
+            if (e.name != event)
                 continue
-            item.handler(data)
-            if (item.once)
-                map.delete(id)
+            e.handler({ name: e.name, data })
+            if (e.once)
+                Events.$off(uid)
         }
     }
 
-    static $off(id) {
-        return Events._map.delete(id)
+    static $off(uid) {
+        if (typeof uid != `string` || uid.length != Events._uid().length)
+            throw new Error(`Invalid arguments, invalid uid, ${uid}!`)
+        if (!Events.list.has(uid))
+            throw new Error(`Invalid arguments, uid ${uid} is not found!`)
+        Events.list.delete(uid)
     }
 
     static $on(event, handler, once = false) {
         if (typeof event != 'string')
-            throw new Error(`Expected a string for event name!`)
+            throw new Error(`Invalid arguments, event should be a string!`)
         if (typeof handler != 'function')
-            throw new Error(`Expected a function for event handler!`)
-        var id = Events._id()
-        Events._map.set(id, { event, handler, once })
-        return id
+            throw new Error(`Invalid arguments, event handler requires a function!`)
+        var uid = Events._uid()
+        Events.list.set(uid, { name: event, handler, once })
+        return uid
     }
 
     static $once(event, handler) {
         return Events.$on(event, handler, true)
     }
 
-    static $watch(watch) {
-        return Object.keys(watch)
-            .map((event) => {
-                var handler = watch[event]
-                return Events.$on(event, handler)
-            })
+    static $watch(events) {
+        if (typeof events != `object` || !Object.keys(events).length)
+            throw new Error(`Invalid arguments, requires an object with at least one event!`)
+        return Object.keys(events)
+            .map(e => Events.$on(e, events[e]))
     }
 
-    static $unwatch(...ids) {
-        for (var id of ids) {
-            Events.$off(id)
+    static $unwatch(uids) {
+        if (!Array.isArray(uids))
+            throw new Error(`Invalid arguments, list of UID's expected!`)
+        for (var uid of uids) {
+            Events.$off(uid)
         }
     }
 
